@@ -6,21 +6,26 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "aiomysql>=0.2.0",
+    "deepagents>=0.0.2",
     "dotenv>=0.9.9",
     "fastapi>=0.116.1",
     "langchain>=0.3.27",
     "langchain-anthropic>=0.3.18",
     "langchain-google-genai>=2.1.8",
+    "langchain-mcp-adapters>=0.1.9",
     "langchain-ollama>=0.3.6",
     "langchain-openai>=0.3.28",
     "langchain-qdrant>=0.2.0",
     "langgraph>=0.6.0",
+    "langgraph-cli[inmem]>=0.3.6",
     "pymupdf>=1.26.3",
     "sqlalchemy>=2.0.41",
+    "tavily-python>=0.7.10",
 ]
 
 [dependency-groups]
 dev = [
     "iprogress>=0.4",
     "ipykernel>=6.30.0",
+    "yfinance>=0.2.65",
 ]
