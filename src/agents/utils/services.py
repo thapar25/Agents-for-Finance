@@ -10,8 +10,10 @@ import json
 from datetime import datetime
 from typing import Literal
 from agents.utils.models import Collection, Quarters
-from pydantic import ValidationError
-from agents.utils.sql_models import Log, AgentResponse, AsyncSessionLocal
+from pydantic import BaseModel
+from agents.utils.sql_models import Log, AsyncSessionLocal
+from langchain_core.messages import messages_to_dict
+
 
 load_dotenv()
 
@@ -103,66 +105,56 @@ async def filtered_vector_search(
         raise Exception(f"Error in filtered_vector_search: {e}")
 
 
+def serialize_agent_response(agent_response_data: dict) -> dict:
+    """
+    Converts a LangChain agent response containing class instances
+    (like AIMessage) into a JSON-serializable dictionary.
+    """
+    serialized_data = {}
+
+    # Serialize the 'messages' list using LangChain's utility
+    if "messages" in agent_response_data:
+        serialized_data["messages"] = messages_to_dict(agent_response_data["messages"])
+
+    # Serialize the 'structured_response' if it's a Pydantic model
+    if "structured_response" in agent_response_data:
+        sr = agent_response_data["structured_response"]
+        if isinstance(sr, BaseModel):
+            # Use .model_dump() for modern Pydantic models
+            serialized_data["structured_response"] = sr.model_dump(mode="json")
+        else:
+            # Pass it through if it's already a dict or something else
+            serialized_data["structured_response"] = sr
+
+    # Copy any other keys that might exist
+    for key, value in agent_response_data.items():
+        if key not in serialized_data:
+            serialized_data[key] = value
+
+    return serialized_data
+
+
 async def log_to_db(
     session_id: str,
     user_input: str,
-    agent_output: any,
+    agent_output: dict,  # Expects the serialized dictionary
     start_time: datetime = None,
     end_time: datetime = None,
-    created_at: datetime = None,
 ):
     """
-    Log agent input/output pair to MySQL logs table.
-
-    Args:
-        session_id: Session identifier
-        user_input: User message/query
-        agent_output: Agent response (string, list, dict, etc.)
-        start_time: Start time of the session (optional)
-        end_time: End time of the session (optional)
-        created_at: Creation time of the log entry (optional)
+    Logs the entire agent response as a single JSON string to the database.
     """
-    model_name = None
-    structured_cols = None
-    p_tokens, c_tokens, t_tokens = None, None, None
-
     try:
-        # Use Pydantic to parse and validate the entire response structure
-        parsed_response = AgentResponse.model_validate(agent_output["response"])
-
-        # Extract structured response keys
-        structured_cols = parsed_response.get_structured_response_keys()
-
-        # Extract metadata from the final AI message
-        final_metadata = parsed_response.get_final_metadata()
-        if final_metadata:
-            model_name = final_metadata.model_name
-            if final_metadata.token_usage:
-                p_tokens = final_metadata.token_usage.prompt_tokens
-                c_tokens = final_metadata.token_usage.completion_tokens
-                t_tokens = final_metadata.token_usage.total_tokens
-
-    except (ValidationError, KeyError, IndexError) as e:
-        print(f"Could not parse agent_output for metadata: {e}")
-        # Continue with null values for the new fields
-
-    try:
-        # Create an instance of the SQLAlchemy Log model
+        # Create an instance of the simple SQLAlchemy Log model
         log_entry = Log(
             session_id=session_id,
             user_input=user_input,
-            agent_output=json.dumps(agent_output, default=str),  # Store the full JSON
+            # Convert the entire dictionary to a JSON string for storage
+            agent_output=json.dumps(agent_output, default=str),
             start_time=start_time,
             end_time=end_time or datetime.now(),
-            created_at=created_at or datetime.now(),
-            model_name=model_name,
-            structured_output_columns=structured_cols,
-            prompt_tokens=p_tokens,
-            completion_tokens=c_tokens,
-            total_tokens=t_tokens,
         )
 
-        # Add the new log entry to the database
         async with AsyncSessionLocal() as session:
             session.add(log_entry)
             await session.commit()

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from agents.simple_agent import stateful_agent
-from agents.utils.services import log_to_db
+from agents.utils.services import log_to_db, serialize_agent_response
 from agents.utils.models import ChatRequest
 from datetime import datetime
 
@@ -31,14 +31,15 @@ async def get_chat_response(request: ChatRequest, background_tasks: BackgroundTa
             status_code=503, detail=f"The AI service is currently unavailable.{e}"
         )
     end_time = datetime.now()
+    serialized_response = serialize_agent_response(response)
 
     # Add background task to log to database
     background_tasks.add_task(
         log_to_db,
         session_id=request.session_id,
         user_input=request.user_message,
-        agent_output={"response": response},
+        agent_output={"response": serialized_response},
         start_time=start_time,
         end_time=end_time,
     )
-    return {"response": response}
+    return {"response": serialized_response}
