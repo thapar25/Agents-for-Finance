@@ -20,7 +20,9 @@ embeddings = OpenAIEmbeddings(
 client = QdrantClient(url="http://localhost:6333")
 
 
-def search_wide(questions: list[str],  collection_name : Literal["transcripts", "reports"]):
+def search_wide(
+    questions: list[str], collection_name: Literal["transcripts", "reports"]
+):
     """Perform a broad multi-query search across the TCS knowledge base for maximum information coverage."""
     results = []
     for question in questions:
@@ -37,7 +39,7 @@ def search_wide(questions: list[str],  collection_name : Literal["transcripts", 
 
 def search_focused(
     question: str,
-    collection_name : Literal["transcripts", "reports"],
+    collection_name: Literal["transcripts", "reports"],
     quarters: list[
         Literal[
             "Q1_FY2025-26",
@@ -48,7 +50,6 @@ def search_focused(
         ]
     ],
     top_k: int = 4,
-   
 ):
     """Perform a targeted search in the TCS financial knowledge base, filtered by fiscal quarters. Returns top-k results."""
     hits = client.query_points(
@@ -90,7 +91,7 @@ def search_internet(
     return search_docs
 
 
-prompt = """""<role> You are an expert financial analyst for Tata Consultancy Services (TCS) </role>
+prompt = """<role> You are an expert financial analyst for Tata Consultancy Services (TCS) </role>
 <instructions> You have access to 'reports' for Financial Reports and 'transcripts' to go through Earning Call Conference transcripts data. Use the provided tools to research for a task, and ALWAYS take the step-by-step approach. Reflect after each step to decide whether you have everything you need. </instructions>
 <additional_info> The ongoing fiscal period in India is Q2_FY2025-26 <additional_info>
 """

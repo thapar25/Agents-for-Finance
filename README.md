@@ -29,7 +29,7 @@ Research Agent(s) to perform Qualitative Analysis and construct Financial Foreca
     - No fixed structured output
 
 
-## Indexed documents + Preset Workflow [✅ Implemented as API]
+## Indexed documents + Preset Workflow [WIP]
 - Preset steps in a workflow, ensemble retrieval, reflections
     - Controlled Research (higher token usage, more time, higher calls/min)
     - Presets allow well-structured sections and output parsing
@@ -39,7 +39,7 @@ Research Agent(s) to perform Qualitative Analysis and construct Financial Foreca
 
 
 
-## Multi-agent (with reflection)
+## Multi-agent (with reflection) [WIP]
 - Planner creates a detailed plan with `to-do` as a list of jsons with a boolean.
 - Manager looks at the plan and assigns the worker/research agent with one task at a time (one todo), and tracks progress (chnages the bool values).
 - Worker uses tools to search vector DB collections for information and drafts sections.
