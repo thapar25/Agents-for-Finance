@@ -3,33 +3,14 @@ from api.routes import router
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from sqlalchemy import text
-from agents.utils.services import AsyncSessionLocal
+from agents.utils.sql_models import create_db_and_tables
 
 
 async def create_logs_table():
     """Create the logs table if it doesn't exist"""
     try:
-        async with AsyncSessionLocal() as session:
-            # Create logs table to match the structure used in log_to_db function
-            create_table_sql = text("""
-                CREATE TABLE IF NOT EXISTS logs (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    session_id VARCHAR(255) NOT NULL,
-                    user_input TEXT NOT NULL,
-                    agent_output LONGTEXT NOT NULL,
-                    start_time DATETIME,
-                    end_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    INDEX idx_session_id (session_id),
-                    INDEX idx_created_at (created_at),
-                    INDEX idx_start_time (start_time)
-                )
-            """)
-
-            await session.execute(create_table_sql)
-            await session.commit()
-            print("✅ Logs table created/verified successfully")
+        await create_db_and_tables()
+        print("✅ Logs table created/verified successfully")
 
     except Exception as e:
         print(f"❌ Error creating logs table: {e}")

@@ -6,13 +6,12 @@ from tavily.async_tavily import AsyncTavilyClient
 from dotenv import load_dotenv
 import os
 import asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import text
 import json
 from datetime import datetime
 from typing import Literal
 from agents.utils.models import Collection, Quarters
+from pydantic import ValidationError
+from agents.utils.sql_models import Log, AgentResponse, AsyncSessionLocal
 
 load_dotenv()
 
@@ -21,22 +20,6 @@ load_dotenv()
 client = AsyncQdrantClient(url="http://localhost:6333")
 # Initialize OpenAI embeddings
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-
-# Initialize MySQL engine for logging
-mysql_username = os.getenv("DB_USER")
-mysql_password = os.getenv("DB_PASSWORD")
-mysql_host = os.getenv("DB_HOST", "localhost")
-mysql_database = os.getenv("DB_NAME")
-
-mysql_connection_string = (
-    f"mysql+aiomysql://{mysql_username}:{mysql_password}@{mysql_host}/{mysql_database}"
-)
-
-mysql_engine = create_async_engine(mysql_connection_string)
-
-AsyncSessionLocal = sessionmaker(
-    mysql_engine, class_=AsyncSession, expire_on_commit=False
-)
 
 
 async def perform_tavily_search(
@@ -139,32 +122,50 @@ async def log_to_db(
         end_time: End time of the session (optional)
         created_at: Creation time of the log entry (optional)
     """
-    try:
-        async with AsyncSessionLocal() as session:
-            # Convert output to JSON string if it's not a string
-            if isinstance(agent_output, str):
-                output_json = agent_output
-            else:
-                output_json = json.dumps(agent_output, default=str)
+    model_name = None
+    structured_cols = None
+    p_tokens, c_tokens, t_tokens = None, None, None
 
-            # Prepare the SQL statement
-            sql = text("""
-                INSERT INTO logs (session_id, user_input, agent_output, start_time, end_time, created_at)
-                VALUES (:session_id, :user_input, :agent_output, :start_time, :end_time, :created_at)
-            """)
-            # Execute the SQL statement
-            await session.execute(
-                sql,
-                {
-                    "session_id": session_id,
-                    "user_input": user_input,
-                    "agent_output": output_json,
-                    "start_time": start_time,
-                    "end_time": end_time or datetime.now(),
-                    "created_at": created_at or datetime.now(),
-                },
-            )
+    try:
+        # Use Pydantic to parse and validate the entire response structure
+        parsed_response = AgentResponse.model_validate(agent_output["response"])
+
+        # Extract structured response keys
+        structured_cols = parsed_response.get_structured_response_keys()
+
+        # Extract metadata from the final AI message
+        final_metadata = parsed_response.get_final_metadata()
+        if final_metadata:
+            model_name = final_metadata.model_name
+            if final_metadata.token_usage:
+                p_tokens = final_metadata.token_usage.prompt_tokens
+                c_tokens = final_metadata.token_usage.completion_tokens
+                t_tokens = final_metadata.token_usage.total_tokens
+
+    except (ValidationError, KeyError, IndexError) as e:
+        print(f"Could not parse agent_output for metadata: {e}")
+        # Continue with null values for the new fields
+
+    try:
+        # Create an instance of the SQLAlchemy Log model
+        log_entry = Log(
+            session_id=session_id,
+            user_input=user_input,
+            agent_output=json.dumps(agent_output, default=str),  # Store the full JSON
+            start_time=start_time,
+            end_time=end_time or datetime.now(),
+            created_at=created_at or datetime.now(),
+            model_name=model_name,
+            structured_output_columns=structured_cols,
+            prompt_tokens=p_tokens,
+            completion_tokens=c_tokens,
+            total_tokens=t_tokens,
+        )
+
+        # Add the new log entry to the database
+        async with AsyncSessionLocal() as session:
+            session.add(log_entry)
             await session.commit()
 
     except Exception as e:
-        print(f"Error logging to MySQL: {e}")
+        print(f"Error logging to MySQL with SQLAlchemy: {e}")
