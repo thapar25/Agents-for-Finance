@@ -1,5 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks
-from agents.simple_agent import agent
+from agents.simple_agent import stateful_agent
 from agents.utils.services import log_to_db
 from agents.utils.models import ChatRequest
 from datetime import datetime
@@ -19,9 +19,8 @@ async def get_chat_response(request: ChatRequest, background_tasks: BackgroundTa
     """Process user message and return agent response (no streaming)"""
     start_time = datetime.now()
     config = {"configurable": {"thread_id": request.session_id}}
-    response = await agent.ainvoke(
-        {"messages": {"role": "user", "content": request.user_message}},
-        config=config
+    response = await stateful_agent.ainvoke(
+        {"messages": {"role": "user", "content": request.user_message}}, config=config
     )
     end_time = datetime.now()
 
@@ -33,5 +32,6 @@ async def get_chat_response(request: ChatRequest, background_tasks: BackgroundTa
         response,
         start_time,
         end_time,
+        created_at=datetime.now(),
     )
     return {"response": response}

@@ -39,10 +39,12 @@ AsyncSessionLocal = sessionmaker(
 )
 
 
-async def perform_tavily_search(query: str,
+async def perform_tavily_search(
+    query: str,
     max_results: int = 5,
     topic: Literal["general", "news", "finance"] = "finance",
-    include_raw_content: bool = False):
+    include_raw_content: bool = False,
+):
     """Perform a search using Tavily API. Returns search results based on the query."""
     tavily_async_client = AsyncTavilyClient(api_key=os.environ["TAVILY_API_KEY"])
     try:
@@ -71,13 +73,15 @@ async def multiquery_vector_search(questions: list[str], collection_name: Collec
                 )
             )
         results_list = await asyncio.gather(*tasks)
-        
+
         # Flatten and structure results
         results = []
         for result in results_list:
             for hit in result.points:
-                results.append({"content": hit.payload["page_content"], "score": hit.score})
-        
+                results.append(
+                    {"content": hit.payload["page_content"], "score": hit.score}
+                )
+
         return results
     except Exception as e:
         raise Exception(f"Error in multiquery_vector_search: {e}")
@@ -92,12 +96,12 @@ async def filtered_vector_search(
     """Perform a targeted search in the knowledge base, filtered by fiscal quarters. Returns top-k results."""
     try:
         query_filter = models.Filter(
-                should=[
-                    models.FieldCondition(
-                        key="metadata.file", match=models.MatchAny(any=quarters)
-                    )
-                ]
-            )
+            should=[
+                models.FieldCondition(
+                    key="metadata.file", match=models.MatchAny(any=quarters)
+                )
+            ]
+        )
 
         hits = await client.query_points(
             collection_name=collection_name,
@@ -110,10 +114,11 @@ async def filtered_vector_search(
         results = []
         for hit in hits.points:
             results.append({"content": hit.payload["page_content"], "score": hit.score})
-        
+
         return results
     except Exception as e:
         raise Exception(f"Error in filtered_vector_search: {e}")
+
 
 async def log_to_db(
     session_id: str,
@@ -121,6 +126,7 @@ async def log_to_db(
     agent_output: any,
     start_time: datetime = None,
     end_time: datetime = None,
+    created_at: datetime = None,
 ):
     """
     Log agent input/output pair to MySQL logs table.
@@ -131,6 +137,7 @@ async def log_to_db(
         agent_output: Agent response (string, list, dict, etc.)
         start_time: Start time of the session (optional)
         end_time: End time of the session (optional)
+        created_at: Creation time of the log entry (optional)
     """
     try:
         async with AsyncSessionLocal() as session:
@@ -142,8 +149,8 @@ async def log_to_db(
 
             # Prepare the SQL statement
             sql = text("""
-                INSERT INTO logs (session_id, user_input, agent_output, start_time, end_time)
-                VALUES (:session_id, :user_input, :agent_output, :start_time, :end_time)
+                INSERT INTO logs (session_id, user_input, agent_output, start_time, end_time, created_at)
+                VALUES (:session_id, :user_input, :agent_output, :start_time, :end_time, :created_at)
             """)
             # Execute the SQL statement
             await session.execute(
@@ -154,6 +161,7 @@ async def log_to_db(
                     "agent_output": output_json,
                     "start_time": start_time,
                     "end_time": end_time or datetime.now(),
+                    "created_at": created_at or datetime.now(),
                 },
             )
             await session.commit()

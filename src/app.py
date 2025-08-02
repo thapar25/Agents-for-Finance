@@ -26,11 +26,11 @@ async def create_logs_table():
                     INDEX idx_start_time (start_time)
                 )
             """)
-            
+
             await session.execute(create_table_sql)
             await session.commit()
             print("✅ Logs table created/verified successfully")
-                
+
     except Exception as e:
         print(f"❌ Error creating logs table: {e}")
         # Don't raise the exception to prevent app startup failure

@@ -2,7 +2,7 @@
   "dependencies": [".", "src"],
   "graphs": {
     "research": "./testing.py:agent",
-    "simple_agent": "src/agents/simple_agent.py:agent"
+    "simple_agent": "src/agents/simple_agent.py:stateless_agent"
   },
   "env": ".env"
 }

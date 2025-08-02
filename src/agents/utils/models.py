@@ -3,7 +3,6 @@ from pydantic import BaseModel, Field
 from datetime import date
 
 
-
 Collection = Literal["transcripts", "reports"]
 
 Quarters = Literal[
@@ -13,6 +12,7 @@ Quarters = Literal[
     "Q3_FY2024-25",
     "Q4_FY2024-25",
 ]
+
 
 class ChatRequest(BaseModel):
     session_id: str = "dev"

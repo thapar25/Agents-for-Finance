@@ -5,7 +5,13 @@ from agents.utils.services import (
 )
 from agents.utils.models import Collection, Quarters
 
-async def search_internet(query: str, max_results: int = 5, topic: str = "finance", include_raw_content: bool = False):
+
+async def search_internet(
+    query: str,
+    max_results: int = 5,
+    topic: str = "finance",
+    include_raw_content: bool = False,
+):
     """Fallback search via the internet. Use **only** if TCS knowledge base yields no relevant results."""
     return await perform_tavily_search(query, max_results, topic, include_raw_content)
 
