@@ -18,6 +18,9 @@ The system is designed as a microservices-style architecture, orchestrated with 
 
 ### How the Agent Works
 
+<img width="935" height="623" alt="image" src="https://github.com/user-attachments/assets/c1ba204c-b73c-4c4a-be40-df8a21b46db7" />
+
+
 The agent follows a chain-of-thought process to fulfill a user's request:
 1.  **Understand the Goal**: The agent receives a prompt (e.g., "Generate a forecast for TCS for the next quarter").
 2.  **Plan the Steps**: Guided by its master prompt, it formulates a plan. For example: "First, I'll get the key financial metrics from the latest reports. Then, I'll find management's commentary on these numbers from the earnings call transcripts."
