@@ -13,11 +13,32 @@ services:
     container_name: mysql_db
     ports:
       - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: logs_db
       MYSQL_USER: user
       MYSQL_PASSWORD: password
+
+  api:
+    build: .
+    container_name: finance_api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+      - qdrant
+    environment:
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_HOST=localhost
+      - DB_NAME=logs_db
+      - QDRANT_URL=http://localhost:6333
+      - DOCKER_ENV=true
+    env_file:
+      - .env
+    command: ["uv", "run", "python", "src/app.py"]
 
 volumes:
   qdrant_data:

@@ -19,7 +19,7 @@ load_dotenv()
 
 
 # Initialize Qdrant client
-client = AsyncQdrantClient(url="http://localhost:6333")
+client = AsyncQdrantClient(url=os.environ["QDRANT_URL"])
 # Initialize OpenAI embeddings
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
