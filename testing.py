@@ -102,4 +102,5 @@ agent = create_react_agent(
     model=llm,
     tools=[search_focused, search_wide, search_internet],
     debug=True,
+    prompt=prompt,
 )
