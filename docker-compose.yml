@@ -3,8 +3,9 @@ services:
     image: qdrant/qdrant
     ports:
       - "6333:6333"
+    command: ["./qdrant", "--storage-snapshot", "/qdrant/snapshots/full-snapshot-2025-08-02-21-54-03.snapshot","--force-snapshot"]
     volumes:
-      - qdrant_data:/qdrant/storage
+      - ./snapshots:/qdrant/snapshots
     environment:
       - QDRANT__HTTP__HOST=0.0.0.0
 
@@ -13,8 +14,6 @@ services:
     container_name: mysql_db
     ports:
       - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: logs_db
@@ -32,14 +31,10 @@ services:
     environment:
       - DB_USER=user
       - DB_PASSWORD=password
-      - DB_HOST=localhost
+      - DB_HOST=mysql
       - DB_NAME=logs_db
-      - QDRANT_URL=http://localhost:6333
+      - QDRANT_URL=http://qdrant:6333
       - DOCKER_ENV=true
     env_file:
       - .env
     command: ["uv", "run", "python", "src/app.py"]
-
-volumes:
-  qdrant_data:
-  mysql_data:

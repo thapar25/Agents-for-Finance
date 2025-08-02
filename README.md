@@ -4,13 +4,10 @@ Research Agent(s) to perform Qualitative Analysis and construct Financial Foreca
 
 ## Current Implementation
 
-### Solution 1: General Tool Calling Agent
+### General Tool Calling Agent
 
 `route: POST /chat`
 
-### Solution 2: RAG Workflow
-
-`route: POST /forecast`
 
 
 
@@ -61,3 +58,34 @@ Research Agent(s) to perform Qualitative Analysis and construct Financial Foreca
     - Autonomy : High
 
 </details>
+
+## Steps to setup vector DB:
+
+### First Run (To Restore the Snapshot):
+```bash
+docker-compose up --build
+```
+Qdrant will start, see the --storage-snapshot flag, load your snapshot file, and save the data into the qdrant_data volume. Wait for all services to be up and running.
+
+### Subsequent Runs (Normal Operation):
+Stop the containers: docker-compose down.
+Edit your docker-compose.yml and comment out or delete the command line from the qdrant service.
+
+```dockerfile
+# In your docker-compose.yml
+qdrant:
+  image: qdrant/qdrant
+  ports:
+    - "6333:6333"
+  # command: ["./qdrant", "--storage-snapshot", "/qdrant/snapshots/snapshot-file-name.snapshot"] # <-- COMMENT THIS OUT
+  volumes:
+    - ./snapshots:/qdrant/snapshots
+    - qdrant_data:/qdrant/storage
+  environment:
+    - QDRANT__HTTP__HOST=0.0.0.0
+```
+From now on, start your services normally.
+```bash
+docker-compose up
+```
+Qdrant will now start much faster because it will load its data directly from the persistent qdrant_data volume where your snapshot data already exists.

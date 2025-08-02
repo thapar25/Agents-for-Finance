@@ -49,33 +49,30 @@ async def root():
 
 def parse_args():
     parser = argparse.ArgumentParser(description="FastAPI Finance Application")
-    
+
     # Check if running in Docker (common environment variable set by Docker)
     is_docker = os.getenv("DOCKER_ENV") is not None
 
     default_host = "0.0.0.0" if is_docker else "127.0.0.1"
 
     parser.add_argument(
-        "--host", 
-        type=str, 
+        "--host",
+        type=str,
         default=default_host,
-        help=f"Host to bind to (default: {default_host})"
+        help=f"Host to bind to (default: {default_host})",
     )
     parser.add_argument(
-        "--port", 
-        type=int, 
-        default=8000,
-        help="Port to bind to (default: 8000)"
+        "--port", type=int, default=8000, help="Port to bind to (default: 8000)"
     )
     parser.add_argument(
-        "--reload", 
-        action="store_true",
-        help="Enable auto-reload for development"
+        "--reload", action="store_true", help="Enable auto-reload for development"
     )
-    
+
     return parser.parse_args()
+
 
 if __name__ == "__main__":
     import uvicorn
+
     args = parse_args()
     uvicorn.run("app:app", host=args.host, port=args.port, reload=args.reload)
