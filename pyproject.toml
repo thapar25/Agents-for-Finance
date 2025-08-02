@@ -1,7 +1,7 @@
 [project]
 name = "agents-for-finance"
 version = "0.1.0"
-description = "Add your description here"
+description = "Agents for Qualitative Analysis and Forecast Reports"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -10,7 +10,6 @@ dependencies = [
     "dotenv>=0.9.9",
     "fastapi>=0.116.1",
     "langchain>=0.3.27",
-    "langchain-anthropic>=0.3.18",
     "langchain-google-genai>=2.1.8",
     "langchain-mcp-adapters>=0.1.9",
     "langchain-ollama>=0.3.6",
@@ -19,6 +18,7 @@ dependencies = [
     "langgraph>=0.6.0",
     "langgraph-cli[inmem]>=0.3.6",
     "pymupdf>=1.26.3",
+    "pymupdf4llm>=0.0.27",
     "sqlalchemy>=2.0.41",
     "tavily-python>=0.7.10",
 ]

@@ -10,23 +10,22 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from qdrant_client import QdrantClient, models
 
+
 load_dotenv()
 
 embeddings = OpenAIEmbeddings(
     model="text-embedding-3-small",
 )
 
-collection_name = "transcripts"
-
 client = QdrantClient(url="http://localhost:6333")
 
 
-def broad_search_docs(questions: list[str]):
-    """Search with multiple questions at once for maximum coverage, in the knowledge base of TCS (best source of information)."""
+def search_wide(questions: list[str],  collection_name : Literal["transcripts", "reports"]):
+    """Perform a broad multi-query search across the TCS knowledge base for maximum information coverage."""
     results = []
     for question in questions:
         hits = client.query_points(
-            collection_name="transcripts",
+            collection_name=collection_name,
             query=embeddings.embed_query(question),
             limit=3,
         ).points
@@ -36,9 +35,10 @@ def broad_search_docs(questions: list[str]):
     return results
 
 
-def narrow_search_docs(
+def search_focused(
     question: str,
-    period: list[
+    collection_name : Literal["transcripts", "reports"],
+    quarters: list[
         Literal[
             "Q1_FY2025-26",
             "Q1_FY2024-25",
@@ -47,16 +47,18 @@ def narrow_search_docs(
             "Q4_FY2024-25",
         ]
     ],
+    top_k: int = 4,
+   
 ):
-    """Search for information in the financial knowledge base of TCS (best source of information), based on temporal filters."""
+    """Perform a targeted search in the TCS financial knowledge base, filtered by fiscal quarters. Returns top-k results."""
     hits = client.query_points(
-        collection_name="transcripts",
+        collection_name=collection_name,
         query=embeddings.embed_query(question),
-        limit=3,
+        limit=top_k,
         query_filter=models.Filter(
             should=[
                 models.FieldCondition(
-                    key="metadata.file", match=models.MatchAny(any=period)
+                    key="metadata.file", match=models.MatchAny(any=quarters)
                 )
             ]
         ),
@@ -77,7 +79,7 @@ def search_internet(
     topic: Literal["general", "news", "finance"] = "finance",
     include_raw_content: bool = False,
 ):
-    """Run a web search"""
+    """Fallback search via the internet. Use **only** if TCS knowledge base yields no relevant results."""
     tavily_async_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
     search_docs = tavily_async_client.search(
         query,
@@ -89,13 +91,14 @@ def search_internet(
 
 
 prompt = """""<role> You are an expert financial analyst for Tata Consultancy Services (TCS) </role>
-<instructions> Use the provided tools to research for a task, and ALWAYS take the step-by-step approach. Reflect after each step to decide whether you have everything you need. </instructions>
+<instructions> You have access to 'reports' for Financial Reports and 'transcripts' to go through Earning Call Conference transcripts data. Use the provided tools to research for a task, and ALWAYS take the step-by-step approach. Reflect after each step to decide whether you have everything you need. </instructions>
+<additional_info> The ongoing fiscal period in India is Q2_FY2025-26 <additional_info>
 """
 
 
 agent = create_react_agent(
-    name="v1.0",
+    name="v1.1",
     model=llm,
-    tools=[broad_search_docs, narrow_search_docs, search_internet],
+    tools=[search_focused, search_wide, search_internet],
     debug=True,
 )
